@@ -1,4 +1,9 @@
-VISUAL = False
+import pygame
+import struct
+import serial
+import os
+
+pygame.init()
 
 # Standardized Names
 Button = "Button"
@@ -48,14 +53,9 @@ ControllerMappings = {
     }
 }
 
-import pygame
-pygame.init()
-import struct
-import serial
-
 def pollJoy(joystick, input_source):
-    name = joystick.get_name()
     try:
+        name = joystick.get_name()
         controllerMap = ControllerMappings.get(name, False)
         source = controllerMap.get(input_source, False)
     except:
@@ -76,8 +76,8 @@ def pollJoy(joystick, input_source):
     exit(1)
 
 def calculateMecanumWheel(joystick, deadzone):
-    speed = pollJoy(joystick, LeftJoyUpDown)
-    strafe  = pollJoy(joystick, LeftJoyLeftRight)
+    speed  = pollJoy(joystick, LeftJoyUpDown)
+    strafe = pollJoy(joystick, LeftJoyLeftRight)
     turn   = pollJoy(joystick, RightJoyLeftRight)
 
     deadzone = abs(deadzone)
@@ -107,46 +107,12 @@ def calculateMecanumWheel(joystick, deadzone):
 
     return (lFwd, lBwd, rFwd, rBwd)
 
-class TextPrint:
-    def __init__(self):
-        self.reset()
-        desiredFont = pygame.font.SysFont("Monospace", 15);
-        if desiredFont:
-            self.font = desiredFont
-        else:
-            self.font = pygame.font.Font(None, 25)
-
-    def tprint(self, screen, text):
-        text_bitmap = self.font.render(text, True, (0, 0, 0))
-        screen.blit(text_bitmap, (self.x, self.y))
-        self.y += self.line_height
-
-    def reset(self):
-        self.x = 10
-        self.y = 10
-        self.line_height = 15
-
-    def indent(self):
-        self.x += 10
-
-    def unindent(self):
-        self.x -= 10
-
 def main():
-    if VISUAL:
-        screen = pygame.display.set_mode((500, 1000))
-        pygame.display.set_caption("Joystick example")
-        text_print = TextPrint()
-
     clock = pygame.time.Clock()
-
     joysticks = {}
-
     ser = serial.Serial('/dev/ttyACM0', 9600);
 
     while True:
-        # Possible joystick events: JOYAXISMOTION, JOYBALLMOTION, JOYBUTTONDOWN,
-        # JOYBUTTONUP, JOYHATMOTION, JOYDEVICEADDED, JOYDEVICEREMOVED
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
@@ -156,51 +122,12 @@ def main():
                 joy = pygame.joystick.Joystick(event.device_index)
                 joysticks[joy.get_instance_id()] = joy
                 print(f"{joy.get_name()}, id#{joy.get_instance_id()} connencted")
-
             if event.type == pygame.JOYDEVICEREMOVED:
                 del joysticks[event.instance_id]
                 print(f"{joy.get_name()}, id#{event.instance_id} disconnected")
 
-        if VISUAL:
-            screen.fill((255, 255, 255))
-            text_print.reset()
-
-            text_print.tprint(screen, f"Number of joysticks: {len(joysticks)}")
-            text_print.indent()
-
-        # For each joystick:
         lf,lb,rf,rb = 0,0,0,0
         for joystick in joysticks.values():
-
-            # Get the name from the OS for the controller/joystick.
-            if VISUAL: 
-                jid = joystick.get_instance_id()
-                name = joystick.get_name()
-                text_print.tprint(screen, f"Joystick #{jid}, name: {name}") 
-                text_print.indent()
-
-                text_print.tprint(screen, f"L_LR {pollJoy(joystick, LeftJoyLeftRight):>6.3f}")
-                text_print.tprint(screen, f"L_UD {pollJoy(joystick, LeftJoyUpDown):>6.3f}")
-                text_print.tprint(screen, f"R_LR {pollJoy(joystick, RightJoyLeftRight):6.3f}")
-                text_print.tprint(screen, f"R_UD {pollJoy(joystick, RightJoyUpDown):6.3f}")
-
-                text_print.tprint(screen, f"LB {pollJoy(joystick, LeftBumper):>6.3f}")
-                text_print.tprint(screen, f"RB {pollJoy(joystick, RightBumper):>6.3f}")
-                text_print.tprint(screen, f"LT {pollJoy(joystick, LeftTrigger):>6.3f}")
-                text_print.tprint(screen, f"RT {pollJoy(joystick, RightTrigger):>6.3f}")
-
-                text_print.tprint(screen, f"AB {pollJoy(joystick, AButton):>6.3f}")
-                text_print.tprint(screen, f"BB {pollJoy(joystick, BButton):>6.3f}")
-                text_print.tprint(screen, f"XB {pollJoy(joystick, XButton):>6.3f}")
-                text_print.tprint(screen, f"YB {pollJoy(joystick, YButton):>6.3f}")
-                text_print.tprint(screen, f"HB {pollJoy(joystick, HomeButton):>6.3f}")
-
-                text_print.tprint(screen, f"dLR {pollJoy(joystick, DpadLeftRight):>6.3f}")
-                text_print.tprint(screen, f"dUD {pollJoy(joystick, DpadUpDown):>6.3f}")
-
-                text_print.tprint(screen, "")
-                text_print.unindent()
-
             lf,lb,rf,rb = calculateMecanumWheel(joystick, 0.08);
 
             lf = int(lf*63)
@@ -210,18 +137,15 @@ def main():
 
             newestMotorOut = (lf,lb,rf,rb)
         
-
-        ser.write(struct.pack('!bbbb',0xF,0xF,0xF,0xF))
-
-        if VISUAL:
-            text_print.tprint(screen, f"{lf:3} | {rf:3}")
-            text_print.tprint(screen, f"{lb:3} | {rb:3}")
-            pygame.display.flip()
+        spd = 124
+        ser.write(struct.pack('!bbbb',lf,lb,rf,rb))
+        os.system('clear')
+        print("{")
+        while ser.in_waiting>0:
+            print(f"\tA: {ser.read()}\n\tB: {ser.read()}\n\tC: {ser.read()}\n\tD: {ser.read()}\n")
+            ser.readline()
+        print("}")
         clock.tick(30)
-
-        if(lf>0.8):
-            print("winnner winner!")
-
 
 if __name__ == "__main__":
     main()
