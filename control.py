@@ -1,3 +1,5 @@
+VISUAL = False
+
 # Standardized Names
 Button = "Button"
 Axis = "Axis"
@@ -30,20 +32,34 @@ ControllerMappings = {
         RightJoyLeftRight : (Axis, 2, 1), RightJoyUpDown : (Axis, 3, -1),
 
         DpadLeftRight : (Hat, 0, 0), DpadUpDown : (Hat, 0, 1),
+    },
+    "Xbox One S Controller": {
+        AButton : (Button, 0), BButton : (Button, 1),
+        XButton : (Button, 3), YButton : (Button, 4),
+        LeftBumper : (Button, 6),  RightBumper : (Button, 7),
+        LeftTrigger : (Axis, 4, 1), RightTrigger : (Axis, 5, 1),
+        LeftJoyIn : (Button, 13),  RightJoyIn : (Button, 14),
+        HomeButton : (Button, 12),
+
+        LeftJoyLeftRight : (Axis, 0, 1),  LeftJoyUpDown : (Axis, 1, -1),
+        RightJoyLeftRight : (Axis, 2, 1), RightJoyUpDown : (Axis, 3, -1),
+
+        DpadLeftRight : (Hat, 0, 0), DpadUpDown : (Hat, 0, 1),
     }
-    #"Wireless Gamepad" : {}, # AKA: Nintindo Joy-Con
-    #"Xbox 360 Controller" : {},
-    #"PS4 Controller": {},
-    #"Sony Interactive Entertainment Wireless Controller": {}, #AKA PS5 Controller
 }
 
 import pygame
 pygame.init()
+import struct
+import serial
 
 def pollJoy(joystick, input_source):
     name = joystick.get_name()
-    controllerMap = ControllerMappings.get(name, False)
-    source = controllerMap.get(input_source, False)
+    try:
+        controllerMap = ControllerMappings.get(name, False)
+        source = controllerMap.get(input_source, False)
+    except:
+        return 0
 
     if source[0] == Button:
         return joystick.get_button(source[1])
@@ -56,7 +72,7 @@ def pollJoy(joystick, input_source):
     if source[0] == Hat:
         return joystick.get_hat(source[1])[source[2]]
 
-    print(f"Unable to find \"{source}\"")
+    print(f"Unable to find source \"{source}\".")
     exit(1)
 
 def calculateMecanumWheel(joystick, deadzone):
@@ -89,7 +105,7 @@ def calculateMecanumWheel(joystick, deadzone):
     rFwd /= peak
     rBwd /= peak
 
-    return ((lFwd, lBwd),(rFwd, rBwd))
+    return (lFwd, lBwd, rFwd, rBwd)
 
 class TextPrint:
     def __init__(self):
@@ -117,13 +133,16 @@ class TextPrint:
         self.x -= 10
 
 def main():
-    screen = pygame.display.set_mode((500, 1000))
-    pygame.display.set_caption("Joystick example")
+    if VISUAL:
+        screen = pygame.display.set_mode((500, 1000))
+        pygame.display.set_caption("Joystick example")
+        text_print = TextPrint()
 
     clock = pygame.time.Clock()
-    text_print = TextPrint()
 
     joysticks = {}
+
+    ser = serial.Serial('/dev/ttyACM0', 9600);
 
     while True:
         # Possible joystick events: JOYAXISMOTION, JOYBALLMOTION, JOYBUTTONDOWN,
@@ -142,49 +161,66 @@ def main():
                 del joysticks[event.instance_id]
                 print(f"{joy.get_name()}, id#{event.instance_id} disconnected")
 
-        screen.fill((255, 255, 255))
-        text_print.reset()
+        if VISUAL:
+            screen.fill((255, 255, 255))
+            text_print.reset()
 
-        text_print.tprint(screen, f"Number of joysticks: {len(joysticks)}")
-        text_print.indent()
+            text_print.tprint(screen, f"Number of joysticks: {len(joysticks)}")
+            text_print.indent()
 
         # For each joystick:
+        lf,lb,rf,rb = 0,0,0,0
         for joystick in joysticks.values():
 
             # Get the name from the OS for the controller/joystick.
-            jid = joystick.get_instance_id()
-            name = joystick.get_name()
-            text_print.tprint(screen, f"Joystick #{jid}, name: {name}")
-            text_print.indent()
+            if VISUAL: 
+                jid = joystick.get_instance_id()
+                name = joystick.get_name()
+                text_print.tprint(screen, f"Joystick #{jid}, name: {name}") 
+                text_print.indent()
 
-            text_print.tprint(screen, f"L_LR {pollJoy(joystick, LeftJoyLeftRight):>6.3f}")
-            text_print.tprint(screen, f"L_UD {pollJoy(joystick, LeftJoyUpDown):>6.3f}")
-            text_print.tprint(screen, f"R_LR {pollJoy(joystick, RightJoyLeftRight):6.3f}")
-            text_print.tprint(screen, f"R_UD {pollJoy(joystick, RightJoyUpDown):6.3f}")
+                text_print.tprint(screen, f"L_LR {pollJoy(joystick, LeftJoyLeftRight):>6.3f}")
+                text_print.tprint(screen, f"L_UD {pollJoy(joystick, LeftJoyUpDown):>6.3f}")
+                text_print.tprint(screen, f"R_LR {pollJoy(joystick, RightJoyLeftRight):6.3f}")
+                text_print.tprint(screen, f"R_UD {pollJoy(joystick, RightJoyUpDown):6.3f}")
 
-            text_print.tprint(screen, f"LB {pollJoy(joystick, LeftBumper):>6.3f}")
-            text_print.tprint(screen, f"RB {pollJoy(joystick, RightBumper):>6.3f}")
-            text_print.tprint(screen, f"LT {pollJoy(joystick, LeftTrigger):>6.3f}")
-            text_print.tprint(screen, f"RT {pollJoy(joystick, RightTrigger):>6.3f}")
+                text_print.tprint(screen, f"LB {pollJoy(joystick, LeftBumper):>6.3f}")
+                text_print.tprint(screen, f"RB {pollJoy(joystick, RightBumper):>6.3f}")
+                text_print.tprint(screen, f"LT {pollJoy(joystick, LeftTrigger):>6.3f}")
+                text_print.tprint(screen, f"RT {pollJoy(joystick, RightTrigger):>6.3f}")
 
-            text_print.tprint(screen, f"AB {pollJoy(joystick, AButton):>6.3f}")
-            text_print.tprint(screen, f"BB {pollJoy(joystick, BButton):>6.3f}")
-            text_print.tprint(screen, f"XB {pollJoy(joystick, XButton):>6.3f}")
-            text_print.tprint(screen, f"YB {pollJoy(joystick, YButton):>6.3f}")
-            text_print.tprint(screen, f"HB {pollJoy(joystick, HomeButton):>6.3f}")
+                text_print.tprint(screen, f"AB {pollJoy(joystick, AButton):>6.3f}")
+                text_print.tprint(screen, f"BB {pollJoy(joystick, BButton):>6.3f}")
+                text_print.tprint(screen, f"XB {pollJoy(joystick, XButton):>6.3f}")
+                text_print.tprint(screen, f"YB {pollJoy(joystick, YButton):>6.3f}")
+                text_print.tprint(screen, f"HB {pollJoy(joystick, HomeButton):>6.3f}")
 
-            text_print.tprint(screen, f"dLR {pollJoy(joystick, DpadLeftRight):>6.3f}")
-            text_print.tprint(screen, f"dUD {pollJoy(joystick, DpadUpDown):>6.3f}")
+                text_print.tprint(screen, f"dLR {pollJoy(joystick, DpadLeftRight):>6.3f}")
+                text_print.tprint(screen, f"dUD {pollJoy(joystick, DpadUpDown):>6.3f}")
 
-            text_print.tprint(screen, "")
-            motors = calculateMecanumWheel(joystick, 0.08);
-            text_print.tprint(screen, f"{motors[0][0]:>6.3f} | {motors[1][0]:>6.3f}")
-            text_print.tprint(screen, f"{motors[0][1]:>6.3f} | {motors[1][1]:>6.3f}")
+                text_print.tprint(screen, "")
+                text_print.unindent()
 
-            text_print.unindent()
+            lf,lb,rf,rb = calculateMecanumWheel(joystick, 0.08);
 
-        pygame.display.flip()
+            lf = int(lf*63)
+            lb = int(lb*63)
+            rf = int(rf*63)
+            rb = int(rb*63)
+
+            newestMotorOut = (lf,lb,rf,rb)
+        
+
+        ser.write(struct.pack('!bbbb',0xF,0xF,0xF,0xF))
+
+        if VISUAL:
+            text_print.tprint(screen, f"{lf:3} | {rf:3}")
+            text_print.tprint(screen, f"{lb:3} | {rb:3}")
+            pygame.display.flip()
         clock.tick(30)
+
+        if(lf>0.8):
+            print("winnner winner!")
 
 
 if __name__ == "__main__":
