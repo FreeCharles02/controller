@@ -57,6 +57,10 @@ ControllerMappings = {
         RightJoyLeftRight: (Axis, 2, 1), RightJoyUpDown: (Axis, 3, -1),
 
         DpadLeftRight: (Hat, 0, 0), DpadUpDown: (Hat, 0, 1),
+    },
+    "Xbox 360 Controller": {
+        LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
+        RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
     }
 }
 
@@ -138,7 +142,7 @@ def main():
 
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
-            lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.15)
+            lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
             lf = int(lf*63)
             lb = int(lb*63)
             rf = int(rf*63)
