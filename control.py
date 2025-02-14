@@ -149,13 +149,18 @@ def main():
             rb = int(rb*63)
 
         ser.write(struct.pack('!bbbb', lf, lb, rf, rb))
-        os.system('clear')
-        print(f"{len(joysticks.values())}\n{lf} | {rf}\n{lb} | {rb}")
-        print("{")
-        while ser.in_waiting > 0:
-            print(f"\tA: {ser.read()}\n\tB: {ser.read()}\n\tC: {ser.read()}\n\tD: {ser.read()}\n")
-            ser.readline()
-        print("}")
+        if ser.in_waiting > 0:
+            os.system('clear')
+            print(f"{len(joysticks.values())}\n{lf:3d} | {rf:3d}\n{lb:3d} | {rb:3d}")
+            print("{")
+            while ser.in_waiting > 0:
+                print(f"\tA: {ser.read()!r:>8}\n" +
+                      f"\tB: {ser.read()!r:>8}\n" +
+                      f"\tC: {ser.read()!r:>8}\n" +
+                      f"\tD: {ser.read()!r:>8}\n")
+                ser.readline()
+            print("}")
+
         clock.tick(30)
 
 
