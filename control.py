@@ -1,9 +1,8 @@
 import pygame
-import struct
-import serial
-import os
+import socket
 
 pygame.init()
+
 
 # Standardized Names
 Button = "Button"
@@ -124,8 +123,12 @@ def calculateMecanumWheel(joystick, deadzone):
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-    ser = serial.Serial('/dev/ttyACM0', 9600)
+   # ser = serial.Serial('/dev/ttyACM0', 9600)
 
+   #Initalizes socket to 
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(('192.168.1.253', 9999))
+    print(client.recv(1024).decode())
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -147,23 +150,20 @@ def main():
             lb = int(lb*63)
             rf = int(rf*63)
             rb = int(rb*63)
+            
+            client.send(lf)
+            client.send(lb)
+            client.send(rf)
+            client.send(rb)
+            
+            
 
-        ser.write(struct.pack('!bbbb', lf, lb, rf, rb))
-        if ser.in_waiting > 0:
-            os.system('clear')
-            print(f"{len(joysticks.values())}\n{lf:3d} | {rf:3d}\n{lb:3d} | {rb:3d}")
-            print("{")
-            while ser.in_waiting > 0:
-                print(f"\tA: {ser.read()!r:>8}\n" +
-                      f"\tB: {ser.read()!r:>8}\n" +
-                      f"\tC: {ser.read()!r:>8}\n" +
-                      f"\tD: {ser.read()!r:>8}\n")
-                ser.readline()
-            print("}")
+       
 
-        clock.tick(30)
+            clock.tick(30)
 
 
 if __name__ == "__main__":
     main()
+  
     pygame.quit()
