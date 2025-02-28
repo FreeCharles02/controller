@@ -151,19 +151,14 @@ def main():
             rf = int(rf*63)
             rb = int(rb*63)
             
-            client.send(lf)
-            client.send(lb)
-            client.send(rf)
-            client.send(rb)
+        client.send(lf)
+        client.send(lb)
+        client.send(rf)
+        client.send(rb)
             
-            
-
-       
-
-            clock.tick(30)
+        clock.tick(30)
 
 
 if __name__ == "__main__":
     main()
-  
     pygame.quit()
