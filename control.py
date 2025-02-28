@@ -1,5 +1,6 @@
 import pygame
 import socket
+import struct
 
 pygame.init()
 
@@ -127,8 +128,8 @@ def main():
 
    #Initalizes socket to 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('192.168.1.253', 9999))
-    print(client.recv(1024).decode())
+    client.connect(('172.20.10.4', 9999))
+    #print(client.recv(1024).decode())
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -150,17 +151,23 @@ def main():
             lb = int(lb*63)
             rf = int(rf*63)
             rb = int(rb*63)
-            
-            client.send(lf)
-            client.send(lb)
-            client.send(rf)
-            client.send(rb)
+            print(lf)
+            print(lb)
+            print(rf)
+            print(rb)
+
+        try:
+            client.send(struct.pack('!bbbb',lf,lb,rf,rb))
+        except:
+            client.close()
+            print("connection refused")
+            client.connect(('172.20.10.4', 9999))
             
             
 
        
 
-            clock.tick(30)
+        clock.tick(30)
 
 
 if __name__ == "__main__":
