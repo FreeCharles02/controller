@@ -151,26 +151,19 @@ def main():
             lb = int(lb*63)
             rf = int(rf*63)
             rb = int(rb*63)
-            print(lf)
-            print(lb)
-            print(rf)
-            print(rb)
-
-        try:
-            client.send(struct.pack('!bbbb',lf,lb,rf,rb))
-        except:
-            client.close()
-            print("connection refused")
-            client.connect(('172.20.10.4', 9999))
+            
+            client.send(lf)
+            client.send(lb)
+            client.send(rf)
+            client.send(rb)
             
             
 
        
 
-        clock.tick(30)
+            clock.tick(30)
 
 
 if __name__ == "__main__":
     main()
-  
     pygame.quit()
