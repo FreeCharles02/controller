@@ -1,3 +1,4 @@
+import serial
 import pygame
 import socket
 import struct
@@ -61,6 +62,10 @@ ControllerMappings = {
     "Xbox 360 Controller": {
         LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
+    },
+    "DualSense Wireless Controller": {
+       LeftJoyLeftRight: (Axis, 0, 1), LeftJoyUpDown: (Axis, 1, -1),
+       RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),     
     }
 }
 
@@ -124,12 +129,11 @@ def calculateMecanumWheel(joystick, deadzone):
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-   # ser = serial.Serial('/dev/ttyACM0', 9600)
+    ser = serial.Serial('/dev/ttyACM0', 9600)
 
    #Initalizes socket to 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(('172.20.10.12', 9999))
-    #print(client.recv(1024).decode())
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -147,10 +151,31 @@ def main():
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
-            lf = int(lf*63)
-            lb = int(lb*63)
-            rf = int(rf*63)
-            rb = int(rb*63)
+            if lf < 0 and lb < 0:
+                lf = int(abs(abs(lf*64) - 63))
+                lb = int(abs(abs(lb*192) - 63))
+                if lf == 0 or lb == 129: 
+                       lf = 1
+                       lb = 128
+                
+            else: 
+                 lf = int(abs(lf*64) + 64)
+                 lb = int(abs(lb*192) + 64)
+            if lf > 127 or lb > 255:
+                        lf = 127
+                        lb = 255
+            if rf < 0 and rb < 0:
+                 rf = int(abs(abs(rf*64) - 64))
+                 rb = int(abs(abs(rb*192) - 64))
+                 if rf == 0 or rb == 129:
+                     rf = 1
+                     rb = 128
+            else: 
+                rf = int(abs(rf*64) + 64)
+                rb = int(abs(rb*192) + 64)
+            if rf > 127 or rb > 255:
+                     rf = 127
+                     rb = 255
             print(lf)
             print(lb)
             print(rf)
