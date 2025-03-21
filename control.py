@@ -2,6 +2,23 @@ import serial
 import pygame
 import socket
 import struct
+import subprocess
+import re 
+
+
+def get_ip_from_mac(mac_address):
+    try:
+        arp_output = subprocess.check_output(['arp', '-a'], text=True)
+        arp_lines = arp_output.splitlines()
+
+        for line in arp_lines:
+            if mac_address in line:
+                ip_address = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
+                if ip_address:
+                    return ip_address.group(0)
+        return None
+    except subprocess.CalledProcessError:
+        return None
 
 pygame.init()
 
@@ -129,11 +146,13 @@ def calculateMecanumWheel(joystick, deadzone):
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-    ser = serial.Serial('/dev/ttyACM0', 9600)
+    #ser = serial.Serial('/dev/ttyACM0', 9600)
+    mac_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
 
    #Initalizes socket to 
+    
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('172.20.10.12', 9999))
+    client.connect((mac_address, 9999))
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -176,17 +195,21 @@ def main():
             if rf > 127 or rb > 255:
                      rf = 127
                      rb = 255
+            print("lf")
             print(lf)
+            print("lb")
             print(lb)
+            print("rf")
             print(rf)
+            print("rb")
             print(rb)
             
         try: 
-            client.send(struct.pack('!bbbb',lf,lb,rf,rb))
+            client.send(struct.pack('!iiii',lf,lb,rf,rb))
         except:
             client.close()
             print("connection refused")
-            client.connect('172.20.10.4', 9999)
+            client.connect('charles-950QED', 9999)
             
 
        
