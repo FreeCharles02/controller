@@ -168,48 +168,68 @@ def main():
                 print(f"{joy.get_name()}, id#{event.instance_id} disconnected")
 
         lf, lb, rf, rb = 0, 0, 0, 0
+        lf2, lb2, rf2, rb2 = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
-            if lf < 0 and lb < 0:
-                lf = int(abs(abs(lf*64) - 63))
-                lb = int(abs(abs(lb*192) - 63))
-                if lf == 0 or lb == 129: 
-                       lf = 1
-                       lb = 128
-                
-            else: 
-                 lf = int(abs(lf*64) + 64)
-                 lb = int(abs(lb*192) + 64)
-            if lf > 127 or lb > 255:
-                        lf = 127
-                        lb = 255
-            if rf < 0 and rb < 0:
-                 rf = int(abs(abs(rf*64) - 64))
-                 rb = int(abs(abs(rb*192) - 64))
-                 if rf == 0 or rb == 129:
-                     rf = 1
-                     rb = 128
-            else: 
-                rf = int(abs(rf*64) + 64)
-                rb = int(abs(rb*192) + 64)
-            if rf > 127 or rb > 255:
-                     rf = 127
-                     rb = 255
-            print("lf")
-            print(lf)
-            print("lb")
-            print(lb)
-            print("rf")
-            print(rf)
-            print("rb")
-            print(rb)
+    
+    # left forward and backward controls
+            if lb == 0 and lf == 0: 
+                lb2 = 192 
+                lf2 = 64
+
+            if lf < 0: 
+                lf2 = int(lf*64) + 64
+                if lf2 == 0:
+                       lf2 = 1
+            if lb < 0: 
+                lb2 = int(lb*64) + 192
+                if lb2 == 129:
+                    lb2 = 128
+
+            if lf > 0: 
+                 lf2 = int((lf*64) + 64)
+                 if lf2 > 127:
+                    lf2 = 127        
+            
+            if lb > 0: 
+               lb2 = int((lb*192) + 64)
+               if lb2 > 255: 
+                   lb2 = 255
+
+   # Right forward and backward controls
+
+            if rb == 0 and rf == 0: 
+                rb2 = 192 
+                rf2 = 64
+
+            if rf < 0: 
+                rf2 = int(rf*64) + 64
+                if rf2 == 0:
+                       rf2 = 1
+            if rb < 0: 
+                rb2 = int(rb*64) + 192
+                if rb2 == 129:
+                    rb2 = 128
+
+            if rf > 0: 
+                 rf2 = int((rf*64) + 64)
+                 if rf2 > 127:
+                    rf2 = 127        
+            
+            if rb > 0: 
+               rb2 = int((rb*192) + 64)
+               if rb2 > 255: 
+                   rb2 = 255
+
+            
+            print(f"\tlf: {lf2}" + " " + f"\tlb: {lb2}" + " " + f"\trf: {rf2}" + " " + f"\trb: {rb2}")
             
         try: 
-            client.send(struct.pack('!iiii',lf,lb,rf,rb))
+            client.send(struct.pack('!iiii',lf2,lb2,rf2,rb2))
         except:
             client.close()
             print("connection refused")
-            client.connect('charles-950QED', 9999)
+            client.connect('charles-950QED', 9999) 
             
 
        
