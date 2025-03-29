@@ -3,7 +3,8 @@ import pygame
 import socket
 import struct
 import subprocess
-import re 
+import time
+import re
 
 
 def get_ip_from_mac(mac_address):
@@ -20,8 +21,8 @@ def get_ip_from_mac(mac_address):
     except subprocess.CalledProcessError:
         return None
 
-pygame.init()
 
+pygame.init()
 
 # Standardized Names
 Button = "Button"
@@ -82,7 +83,7 @@ ControllerMappings = {
     },
     "DualSense Wireless Controller": {
        LeftJoyLeftRight: (Axis, 0, 1), LeftJoyUpDown: (Axis, 1, -1),
-       RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),     
+       RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
     }
 }
 
@@ -143,16 +144,40 @@ def calculateMecanumWheel(joystick, deadzone):
     return (lFwd, lBwd, rFwd, rBwd)
 
 
+ip_address = '127.0.0.1'
+port = 9999
+
+def connect_client():
+    while(True):
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((ip_address, port))
+            return client
+        except:
+            time.sleep(0.5)
+            continue
+
+
+def remap(ch1, ch2):
+    if (ch2 > 0):
+        return (int(ch1*63+64), int(ch2*63+192))
+    else:
+        return (int(ch1*63+64), int(ch2*64+192))
+
+
+connect = True
+
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-    #ser = serial.Serial('/dev/ttyACM0', 9600)
-    mac_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
 
-   #Initalizes socket to 
-    
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((mac_address, 9999))
+    global ip_address
+
+    # Initalizes socket to
+    if connect:
+        ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
+        client = connect_client()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -162,77 +187,28 @@ def main():
             if event.type == pygame.JOYDEVICEADDED:
                 joy = pygame.joystick.Joystick(event.device_index)
                 joysticks[joy.get_instance_id()] = joy
-                print(f"{joy.get_name()}, id#{joy.get_instance_id()} connencted")
+                print(f"{joy.get_name()}, connencted")
             if event.type == pygame.JOYDEVICEREMOVED:
                 del joysticks[event.instance_id]
-                print(f"{joy.get_name()}, id#{event.instance_id} disconnected")
+                print(f"{joy.get_name()}, disconnected")
 
         lf, lb, rf, rb = 0, 0, 0, 0
-        lf2, lb2, rf2, rb2 = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
-    
-    # left forward and backward controls
-            if lb == 0 and lf == 0: 
-                lb2 = 192 
-                lf2 = 64
 
-            if lf < 0: 
-                lf2 = int(lf*64) + 64
-                if lf2 == 0:
-                       lf2 = 1
-            if lb < 0: 
-                lb2 = int(lb*64) + 192
-                if lb2 == 129:
-                    lb2 = 128
+        lb, lf = remap(lb, lf)
+        rb, rf = remap(rb, rf)
 
-            if lf > 0: 
-                 lf2 = int((lf*64) + 64)
-                 if lf2 > 127:
-                    lf2 = 127        
-            
-            if lb > 0: 
-               lb2 = int((lb*192) + 64)
-               if lb2 > 255: 
-                   lb2 = 255
+        print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
 
-   # Right forward and backward controls
-
-            if rb == 0 and rf == 0: 
-                rb2 = 192 
-                rf2 = 64
-
-            if rf < 0: 
-                rf2 = int(rf*64) + 64
-                if rf2 == 0:
-                       rf2 = 1
-            if rb < 0: 
-                rb2 = int(rb*64) + 192
-                if rb2 == 129:
-                    rb2 = 128
-
-            if rf > 0: 
-                 rf2 = int((rf*64) + 64)
-                 if rf2 > 127:
-                    rf2 = 127        
-            
-            if rb > 0: 
-               rb2 = int((rb*192) + 64)
-               if rb2 > 255: 
-                   rb2 = 255
-
-            
-            print(f"\tlf: {lf2}" + " " + f"\tlb: {lb2}" + " " + f"\trf: {rf2}" + " " + f"\trb: {rb2}")
-            
-        try: 
-            client.send(struct.pack('!iiii',lf2,lb2,rf2,rb2))
-        except:
-            client.close()
-            print("connection refused")
-            client.connect('charles-950QED', 9999) 
-            
-
-       
+        if connect:
+            try:
+                client.send(struct.pack('!BBBB', lf, lb, rf, rb))
+            except:
+                client.close()
+                print("connection refused")
+                client = connect_client()
+                print("reconnected")
 
         clock.tick(30)
 
