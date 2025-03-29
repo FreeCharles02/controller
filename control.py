@@ -1,6 +1,24 @@
+import serial
 import pygame
 import socket
 import struct
+import subprocess
+import re 
+
+
+def get_ip_from_mac(mac_address):
+    try:
+        arp_output = subprocess.check_output(['arp', '-a'], text=True)
+        arp_lines = arp_output.splitlines()
+
+        for line in arp_lines:
+            if mac_address in line:
+                ip_address = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
+                if ip_address:
+                    return ip_address.group(0)
+        return None
+    except subprocess.CalledProcessError:
+        return None
 
 pygame.init()
 
@@ -61,6 +79,10 @@ ControllerMappings = {
     "Xbox 360 Controller": {
         LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
+    },
+    "DualSense Wireless Controller": {
+       LeftJoyLeftRight: (Axis, 0, 1), LeftJoyUpDown: (Axis, 1, -1),
+       RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),     
     }
 }
 
@@ -124,12 +146,13 @@ def calculateMecanumWheel(joystick, deadzone):
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-   # ser = serial.Serial('/dev/ttyACM0', 9600)
+    #ser = serial.Serial('/dev/ttyACM0', 9600)
+    mac_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
 
    #Initalizes socket to 
+    
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('172.20.10.12', 9999))
-    #print(client.recv(1024).decode())
+    client.connect((mac_address, 9999))
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -145,23 +168,68 @@ def main():
                 print(f"{joy.get_name()}, id#{event.instance_id} disconnected")
 
         lf, lb, rf, rb = 0, 0, 0, 0
+        lf2, lb2, rf2, rb2 = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
-            lf = int(lf*63)
-            lb = int(lb*63)
-            rf = int(rf*63)
-            rb = int(rb*63)
-            print(lf)
-            print(lb)
-            print(rf)
-            print(rb)
+    
+    # left forward and backward controls
+            if lb == 0 and lf == 0: 
+                lb2 = 192 
+                lf2 = 64
+
+            if lf < 0: 
+                lf2 = int(lf*64) + 64
+                if lf2 == 0:
+                       lf2 = 1
+            if lb < 0: 
+                lb2 = int(lb*64) + 192
+                if lb2 == 129:
+                    lb2 = 128
+
+            if lf > 0: 
+                 lf2 = int((lf*64) + 64)
+                 if lf2 > 127:
+                    lf2 = 127        
+            
+            if lb > 0: 
+               lb2 = int((lb*192) + 64)
+               if lb2 > 255: 
+                   lb2 = 255
+
+   # Right forward and backward controls
+
+            if rb == 0 and rf == 0: 
+                rb2 = 192 
+                rf2 = 64
+
+            if rf < 0: 
+                rf2 = int(rf*64) + 64
+                if rf2 == 0:
+                       rf2 = 1
+            if rb < 0: 
+                rb2 = int(rb*64) + 192
+                if rb2 == 129:
+                    rb2 = 128
+
+            if rf > 0: 
+                 rf2 = int((rf*64) + 64)
+                 if rf2 > 127:
+                    rf2 = 127        
+            
+            if rb > 0: 
+               rb2 = int((rb*192) + 64)
+               if rb2 > 255: 
+                   rb2 = 255
+
+            
+            print(f"\tlf: {lf2}" + " " + f"\tlb: {lb2}" + " " + f"\trf: {rf2}" + " " + f"\trb: {rb2}")
             
         try: 
-            client.send(struct.pack('!bbbb',lf,lb,rf,rb))
+            client.send(struct.pack('!iiii',lf2,lb2,rf2,rb2))
         except:
             client.close()
             print("connection refused")
-            client.connect('172.20.10.4', 9999)
+            client.connect('charles-950QED', 9999) 
             
 
        
