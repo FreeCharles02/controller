@@ -82,8 +82,17 @@ ControllerMappings = {
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
     },
     "DualSense Wireless Controller": {
-       LeftJoyLeftRight: (Axis, 0, 1), LeftJoyUpDown: (Axis, 1, -1),
-       RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
+       AButton: (Button, 0), BButton: (Button, 1),
+        XButton: (Button, 3), YButton: (Button, 4),
+        LeftBumper: (Button, 6),  RightBumper: (Button, 7),
+        LeftTrigger: (Axis, 4, 1), RightTrigger: (Axis, 5, 1),
+        LeftJoyIn: (Button, 13),  RightJoyIn: (Button, 14),
+        HomeButton: (Button, 12),
+
+        LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
+        RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
+
+        DpadLeftRight: (Hat, 0, 0), DpadUpDown: (Hat, 0, 1),
     }
 }
 
@@ -128,10 +137,6 @@ def calculateMecanumWheel(joystick, deadzone):
 
     # Map joysticks onto mecanum wheels
     lFwd = speed + strafe + turn
-    lBwd = speed - strafe + turn
-    rFwd = speed - strafe - turn
-    rBwd = speed + strafe - turn
-
     # Calculate if any values exceed 1
     peak = max(abs(lFwd), abs(lBwd), abs(rFwd), abs(rBwd), 1)
 
@@ -151,7 +156,7 @@ def connect_client():
     while(True):
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect((ip_address, port))
+            client.connect(('127.0.0.1', port))
             return client
         except:
             time.sleep(0.5)
@@ -164,6 +169,12 @@ def remap(ch1, ch2):
     else:
         return (int(ch1*63+64), int(ch2*64+192))
 
+def remap2(ch1, ch2):
+    if (ch2 < 0):
+        return (int(ch1*63+64), int(ch2*63+192))
+    else:
+        return (int(ch1*63+64), int(ch2*64+192))
+        
 
 connect = True
 
@@ -197,7 +208,7 @@ def main():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
 
         lb, lf = remap(lb, lf)
-        rb, rf = remap(rb, rf)
+        rb, rf = remap2(rb, rf)
 
         print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
 
