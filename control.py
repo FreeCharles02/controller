@@ -194,22 +194,6 @@ def main():
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
-<<<<<<< Updated upstream
-
-        lb, lf = remap(lb, lf)
-        rb, rf = remap2(rb, rf)
-
-        print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
-
-        if connect:
-            try:
-                client.send(struct.pack('!BBBB', lf, lb, rf, rb))
-            except:
-                client.close()
-                print("connection refused")
-                client = connect_client()
-                print("reconnected")
-=======
     
             lb, lf = remap(lb, lf)
             rb, rf = remap2(rb, rf)
