@@ -96,18 +96,13 @@ ControllerMappings = {
     }
 }
 
+
 def remap(ch1, ch2):
     if (ch2 > 0):
-        return (int(ch1*50+64), int(ch2*50+192))
+        return (int(ch1*63+64), int(ch2*63+192))
     else:
-        return (int(ch1*50+64), int(ch2*50+192))
+        return (int(ch1*63+64), int(ch2*64+192))
 
-def remap2(ch1, ch2):
-    if (ch2 > 0):
-        return (int(ch1*-50+64), int(ch2*-50+192))
-    else:
-        return (int(ch1*-50+64), int(ch2*-50+192))
-    
 
 def pollJoy(joystick, input_source):
     try:
@@ -132,10 +127,10 @@ def pollJoy(joystick, input_source):
     exit(1)
 
 
-def calculateMecanumWheel(joystick, deadzone):
-    speed  = pollJoy(joystick, LeftJoyUpDown)
+def calculateMecanumWheel(joystick, deadzone, maxspeed):
+    speed = pollJoy(joystick, LeftJoyUpDown)
     strafe = pollJoy(joystick, LeftJoyLeftRight)
-    turn   = pollJoy(joystick, RightJoyLeftRight)
+    turn = pollJoy(joystick, RightJoyLeftRight)
 
     deadzone = abs(deadzone)
     if speed > -deadzone and speed < deadzone:
@@ -152,6 +147,7 @@ def calculateMecanumWheel(joystick, deadzone):
     lBwd = speed - strafe + turn
     rFwd = speed - strafe - turn
     rBwd = speed + strafe - turn
+
     # Calculate if any values exceed 1
     peak = max(abs(lFwd), abs(lBwd), abs(rFwd), abs(rBwd), 1)
 
@@ -161,22 +157,26 @@ def calculateMecanumWheel(joystick, deadzone):
     rFwd /= peak
     rBwd /= peak
 
+    lFwd *= maxspeed
+    lBwd *= maxspeed
+    rFwd *= maxspeed
+    rBwd *= maxspeed
+
     return (lFwd, lBwd, rFwd, rBwd)
+
 
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
     #ser = serial.Serial('/dev/ttyACM0', 9600)
-    mac_address = "192.168.0.101"
 
-    # Initalizes socket to
     ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
+    ip_address = "192.168.0.101"
    
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((mac_address, 9999))
+    client.connect((ip_address, 9999))
             
-
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -193,23 +193,19 @@ def main():
 
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
-            lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
+            lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
     
-            lb, lf = remap(lb, lf)
-            rb, rf = remap2(rb, rf)
-
+        lb, lf = remap(lb, lf)
+        rb, rf = remap(rb * -1, rf * -1)
             
-            print(f"\tlf: {lf}" + " " + f"\tlb: {lb}" + " " + f"\trf: {rf}" + " " + f"\trb: {rb}")
+        print(f"\tlf: {lf}" + " " + f"\tlb: {lb}" + " " + f"\trf: {rf}" + " " + f"\trb: {rb}")
             
         try: 
             client.send(struct.pack('!BBBB',lf,lb,rf,rb))
         except:
             client.close()
             print("connection refused")
-            client.connect('charles-950QED', 9999) 
-            
-
-       
+            client.connect((ip_address, 9999))
 
         clock.tick(30)
 
