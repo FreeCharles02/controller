@@ -96,6 +96,17 @@ ControllerMappings = {
     }
 }
 
+def remap(ch1, ch2):
+    if (ch2 > 0):
+        return (int(ch1*50+64), int(ch2*50+192))
+    else:
+        return (int(ch1*50+64), int(ch2*50+192))
+
+def remap2(ch1, ch2):
+    if (ch2 > 0):
+        return (int(ch1*-50+64), int(ch2*-50+192))
+    else:
+        return (int(ch1*-50+64), int(ch2*-50+192))
 
 def pollJoy(joystick, input_source):
     try:
@@ -181,6 +192,11 @@ connect = True
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
+<<<<<<< Updated upstream
+=======
+    #ser = serial.Serial('/dev/ttyACM0', 9600)
+    mac_address = "192.168.0.101"
+>>>>>>> Stashed changes
 
     global ip_address
 
@@ -206,6 +222,7 @@ def main():
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08)
+<<<<<<< Updated upstream
 
         lb, lf = remap(lb, lf)
         rb, rf = remap2(rb, rf)
@@ -220,6 +237,24 @@ def main():
                 print("connection refused")
                 client = connect_client()
                 print("reconnected")
+=======
+    
+            lb, lf = remap(lb, lf)
+            rb, rf = remap2(rb, rf)
+
+            
+            print(f"\tlf: {lf}" + " " + f"\tlb: {lb}" + " " + f"\trf: {rf}" + " " + f"\trb: {rb}")
+            
+        try: 
+            client.send(struct.pack('!BBBB',lf,lb,rf,rb))
+        except:
+            client.close()
+            print("connection refused")
+            client.connect('charles-950QED', 9999) 
+            
+
+       
+>>>>>>> Stashed changes
 
         clock.tick(30)
 
