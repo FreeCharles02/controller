@@ -107,6 +107,7 @@ def remap2(ch1, ch2):
         return (int(ch1*-50+64), int(ch2*-50+192))
     else:
         return (int(ch1*-50+64), int(ch2*-50+192))
+    
 
 def pollJoy(joystick, input_source):
     try:
@@ -148,6 +149,9 @@ def calculateMecanumWheel(joystick, deadzone):
 
     # Map joysticks onto mecanum wheels
     lFwd = speed + strafe + turn
+    lBwd = speed - strafe + turn
+    rFwd = speed - strafe - turn
+    rBwd = speed + strafe - turn
     # Calculate if any values exceed 1
     peak = max(abs(lFwd), abs(lBwd), abs(rFwd), abs(rBwd), 1)
 
@@ -159,54 +163,19 @@ def calculateMecanumWheel(joystick, deadzone):
 
     return (lFwd, lBwd, rFwd, rBwd)
 
-
-ip_address = '127.0.0.1'
-port = 9999
-
-def connect_client():
-    while(True):
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(('127.0.0.1', port))
-            return client
-        except:
-            time.sleep(0.5)
-            continue
-
-
-def remap(ch1, ch2):
-    if (ch2 > 0):
-        return (int(ch1*63+64), int(ch2*63+192))
-    else:
-        return (int(ch1*63+64), int(ch2*64+192))
-
-def remap2(ch1, ch2):
-    if (ch2 < 0):
-        return (int(ch1*63+64), int(ch2*63+192))
-    else:
-        return (int(ch1*63+64), int(ch2*64+192))
-        
-
-connect = True
-
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
-<<<<<<< Updated upstream
-=======
+
     #ser = serial.Serial('/dev/ttyACM0', 9600)
     mac_address = "192.168.0.101"
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-
-    global ip_address
 
     # Initalizes socket to
-    if connect:
-        ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
-        client = connect_client()
-=======
->>>>>>> Stashed changes
+    ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
+   
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((mac_address, 9999))
+            
 
     while True:
         for event in pygame.event.get():
@@ -257,7 +226,6 @@ def main():
             
 
        
->>>>>>> Stashed changes
 
         clock.tick(30)
 
