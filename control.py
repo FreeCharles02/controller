@@ -51,7 +51,7 @@ DpadLeftRight = "D_LR"
 DpadUpDown = "D_UD"
 
 ControllerMappings = {
-    "Nintendo Switch Pro Controller": {
+    "Pro Controller": {
         AButton: (Button, 1), BButton: (Button, 0),
         XButton: (Button, 2), YButton: (Button, 3),
         LeftBumper: (Button, 5),  RightBumper: (Button, 6),
@@ -64,6 +64,7 @@ ControllerMappings = {
 
         DpadLeftRight: (Hat, 0, 0), DpadUpDown: (Hat, 0, 1),
     },
+
     "Xbox One S Controller": {
         AButton: (Button, 0), BButton: (Button, 1),
         XButton: (Button, 3), YButton: (Button, 4),
@@ -82,8 +83,10 @@ ControllerMappings = {
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
     },
     "DualSense Wireless Controller": {
-       AButton: (Button, 0), BButton: (Button, 1),
+        AButton: (Button, 0), BButton: (Button, 1),
+        LeftJoyLeftRight: (Axis, 0, 1), LeftJoyUpDown: (Axis, 1, -1),
         XButton: (Button, 3), YButton: (Button, 4),
+        RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
         LeftBumper: (Button, 6),  RightBumper: (Button, 7),
         LeftTrigger: (Axis, 4, 1), RightTrigger: (Axis, 5, 1),
         LeftJoyIn: (Button, 13),  RightJoyIn: (Button, 14),
@@ -97,19 +100,13 @@ ControllerMappings = {
 }
 
 
-def remap(ch1, ch2):
-    if (ch2 > 0):
-        return (int(ch1*63+64), int(ch2*63+192))
-    else:
-        return (int(ch1*63+64), int(ch2*64+192))
-
-
 def pollJoy(joystick, input_source):
     try:
         name = joystick.get_name()
         controllerMap = ControllerMappings.get(name, False)
         source = controllerMap.get(input_source, False)
     except:
+        print("failed on controller '" + joystick.get_name() + "'")
         return 0
 
     if source[0] == Button:
@@ -143,9 +140,9 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
         turn = 0
 
     # Map joysticks onto mecanum wheels
-    lFwd = speed + strafe + turn
-    lBwd = speed - strafe + turn
-    rFwd = speed - strafe - turn
+    lFwd = speed - strafe + turn
+    lBwd = speed + strafe + turn
+    rFwd = speed + strafe - turn
     rBwd = speed + strafe - turn
 
     # Calculate if any values exceed 1
@@ -165,18 +162,27 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
     return (lFwd, lBwd, rFwd, rBwd)
 
 
+def remap(ch1, ch2):
+    if (ch2 > 0):
+        return (int(ch1*63+64), int(ch2*63+192))
+    else:
+        return (int(ch1*63+64), int(ch2*64+192))
+
+
+connect = True
+
+
 def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    #ser = serial.Serial('/dev/ttyACM0', 9600)
-
-    ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
     ip_address = "192.168.0.101"
-   
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((ip_address, 9999))
-            
+
+    # Initalizes socket to
+    if connect:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((ip_address, 9999))
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -194,18 +200,31 @@ def main():
         lf, lb, rf, rb = 0, 0, 0, 0
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
-    
-        lb, lf = remap(lb, lf)
-        rb, rf = remap(rb * -1, rf * -1)
-            
-        print(f"\tlf: {lf}" + " " + f"\tlb: {lb}" + " " + f"\trf: {rf}" + " " + f"\trb: {rb}")
-            
-        try: 
-            client.send(struct.pack('!BBBB',lf,lb,rf,rb))
-        except:
-            client.close()
-            print("connection refused")
-            client.connect((ip_address, 9999))
+
+        # Robot frame&motor power visualizer
+        print("/===/-----\\===\\\n" +
+              f"/{lf*100:3.0f}/     \\{rf*100:3.0f}\\\n" +
+              "/===/     \\===\\\n" +
+              ("   |       |\n" * 3) +
+              "\\===\\     /===/\n" +
+              f"\\{lb*100:3.0f}\\     /{rb*100:3.0f}/\n" +
+              "\\===\\-----/===/\n")
+
+        lb, lf = remap(lb*-1, lf*-1)
+        rb, rf = remap(rf, rb)
+
+        print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\n\n")
+
+        if connect:
+            try:
+                client.send(struct.pack('!BBBB', rb, rf, lb, lf))
+                #client.send(struct.pack('!BBBB', bl, br, 0, lf))
+                # doubled, unk, unk, unk
+            except:
+                client.close()
+                print("connection refused")
+                client.connect((ip_address, 9999))
+                print("reconnected")
 
         clock.tick(30)
 
