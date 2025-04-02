@@ -196,6 +196,7 @@ def main():
 =======
     #ser = serial.Serial('/dev/ttyACM0', 9600)
     mac_address = "192.168.0.101"
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
 
     global ip_address
@@ -204,6 +205,8 @@ def main():
     if connect:
         ip_address = get_ip_from_mac('d8:3a:dd:d0:ac:cb')
         client = connect_client()
+=======
+>>>>>>> Stashed changes
 
     while True:
         for event in pygame.event.get():
