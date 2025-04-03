@@ -81,6 +81,8 @@ ControllerMappings = {
     "Xbox 360 Controller": {
         LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
+        LeftBumper: (Button, 4),  RightBumper: (Button, 5),
+        LeftTrigger: (Axis, 4, 1), RightTrigger: (Axis, 5, 1),
     },
     "DualSense Wireless Controller": {
         AButton: (Button, 0), BButton: (Button, 1),
@@ -198,9 +200,23 @@ def main():
                 print(f"{joy.get_name()}, disconnected")
 
         lf, lb, rf, rb = 0, 0, 0, 0
+        lb_button, rb_button = 0, 0 
+        dpad_value_1 = 0
+        dpad_value_2 = 0
+        a = 0
+        y = 0
+
+
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
-
+            lb_button = pollJoy(joystick, LeftBumper)
+            rb_button = pollJoy(joystick, RightBumper)
+            dpad_value_1 = pollJoy(joystick, DpadUpDown)
+            dpad_value_2 = pollJoy(joystick, DpadLeftRight)
+            a = pollJoy(joystick, AButton)
+            y = polljoy(joystick, YButton)
+            rt_trigger = joystick.get_axis(5)
+            lt_trigger = joystick.get_axis(4)
         # Robot frame&motor power visualizer
         print("/===/-----\\===\\\n" +
               f"/{lf*100:3.0f}/     \\{rf*100:3.0f}\\\n" +
@@ -217,7 +233,7 @@ def main():
 
         if connect:
             try:
-                client.send(struct.pack('!BBBB', rb, rf, lb, lf))
+                client.send(struct.pack('!BBBBBBBBBB', rb, rf, lb, lf, lb_button, rb_button, dpad_value_1, dpad_value_2, lt_trigger, rt_trigger, a, y))
                 #client.send(struct.pack('!BBBB', bl, br, 0, lf))
                 # doubled, unk, unk, unk
             except:
