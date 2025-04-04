@@ -85,9 +85,9 @@ ControllerMappings = {
     },
     "DualSense Wireless Controller": {
         AButton: (Button, 0), BButton: (Button, 1),
-        XButton: (Button, 3), YButton: (Button, 4),
-        LeftBumper: (Button, 6),  RightBumper: (Button, 7),
-        LeftTrigger: (Axis, 4, 1), RightTrigger: (Axis, 5, 1),
+        XButton: (Button, 3), YButton: (Button, 2),
+        LeftBumper: (Button, 4),  RightBumper: (Button, 5),
+        LeftTrigger: (Axis, 2, 1), RightTrigger: (Axis, 5, 1),
         LeftJoyIn: (Button, 13),  RightJoyIn: (Button, 14),
         HomeButton: (Button, 12),
 
@@ -124,12 +124,7 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
     strafe = pollJoy(joystick, LeftJoyLeftRight)
     turn = pollJoy(joystick, RightJoyLeftRight)
 
-    deadzone = abs(deadzone)
-    if speed > -deadzone and speed < deadzone:
-        speed = 0
-
-    if strafe > -deadzone and strafe < deadzone:
-        strafe = 0
+    deadzone = abs(deadzone) 
 
     if turn > -deadzone and turn < deadzone:
         turn = 0
@@ -162,7 +157,7 @@ def remap(ch1, ch2):
         return (int(ch1*63+64), int(ch2*63+192))
     else:
         return (int(ch1*63+64), int(ch2*64+192))
-
+    
 
 connect = True
 
@@ -171,7 +166,7 @@ def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    ip_address = "192.168.0.101"
+    ip_address = "192.168.0.100"
 
     # Initalizes socket to
     if connect:
@@ -202,17 +197,20 @@ def main():
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
 
-            lb_button = pollJoy(joystick, LeftBumper)
+            lb_button = pollJoy(joystick, LeftBumper) 
             rb_button = pollJoy(joystick, RightBumper)
 
-            dpad_value_1 = pollJoy(joystick, DpadUpDown)
-            dpad_value_2 = pollJoy(joystick, DpadLeftRight)
+            dpad_value_1 = pollJoy(joystick, DpadUpDown) + 1
+            dpad_value_2 = pollJoy(joystick, DpadLeftRight) + 1
 
             a = pollJoy(joystick, AButton)
             y = pollJoy(joystick, YButton)
 
-            rt_trigger = joystick.get_axis(5)
-            lt_trigger = joystick.get_axis(4)
+            rt_trigger = joystick.get_axis(5) + 1
+            lt_trigger = joystick.get_axis(4) + 1
+
+            rt_trigger = int(rt_trigger)
+            lt_trigger = int(lt_trigger)
 
         # Robot frame&motor power visualizer
         print("\\===\\-----/===/\n" +
@@ -225,16 +223,15 @@ def main():
 
         lb, lf = remap(lb*-1, lf*-1)
         rb, rf = remap(rf, rb)
-
-        print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\n\n")
+        
+        print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d} \n\n")
 
         if connect:
             try:
-                client.send(struct.pack('!BBBBBBBBBB',
+                client.send(struct.pack('!BBBBBBBBBBBB',
                                         rb, rf, lb, lf,
                                         lb_button, rb_button,
-                                        dpad_value_1, dpad_value_2,
-                                        lt_trigger, rt_trigger, a, y))
+                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, a, y))
             except:
                 client.close()
                 print("connection refused")
