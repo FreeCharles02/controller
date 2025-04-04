@@ -78,6 +78,8 @@ ControllerMappings = {
         DpadLeftRight: (Hat, 0, 0), DpadUpDown: (Hat, 0, 1),
     },
     "Xbox 360 Controller": {
+        AButton: (Button, 0), BButton: (Button, 1),
+        XButton: (Button, 3), YButton: (Button, 2),
         LeftJoyLeftRight: (Axis, 0, 1),  LeftJoyUpDown: (Axis, 1, -1),
         RightJoyLeftRight: (Axis, 3, 1), RightJoyUpDown: (Axis, 4, -1),
         LeftBumper: (Button, 4),  RightBumper: (Button, 5),
@@ -166,7 +168,7 @@ def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    ip_address = "192.168.0.100"
+    ip_address = "192.168.0.101"
 
     # Initalizes socket to
     if connect:
@@ -203,11 +205,13 @@ def main():
             dpad_value_1 = pollJoy(joystick, DpadUpDown) + 1
             dpad_value_2 = pollJoy(joystick, DpadLeftRight) + 1
 
-            a = pollJoy(joystick, AButton)
-            y = pollJoy(joystick, YButton)
+            b = pollJoy(joystick, BButton)
+            x = pollJoy(joystick, XButton)
+
+
 
             rt_trigger = joystick.get_axis(5) + 1
-            lt_trigger = joystick.get_axis(4) + 1
+            lt_trigger = joystick.get_axis(2) + 1
 
             rt_trigger = int(rt_trigger)
             lt_trigger = int(lt_trigger)
@@ -231,7 +235,7 @@ def main():
                 client.send(struct.pack('!BBBBBBBBBBBB',
                                         rb, rf, lb, lf,
                                         lb_button, rb_button,
-                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, a, y))
+                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b))
             except:
                 client.close()
                 print("connection refused")
