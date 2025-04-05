@@ -208,7 +208,8 @@ def main():
             b = pollJoy(joystick, BButton)
             x = pollJoy(joystick, XButton)
 
-
+            a = pollJoy(joystick, AButton)
+            y = pollJoy(joystick, YButton)
 
             rt_trigger = joystick.get_axis(5) + 1
             lt_trigger = joystick.get_axis(2) + 1
@@ -228,14 +229,14 @@ def main():
         lb, lf = remap(lb*-1, lf*-1)
         rb, rf = remap(rf, rb)
         
-        print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d} \n\n")
+        print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
 
         if connect:
             try:
-                client.send(struct.pack('!BBBBBBBBBBBB',
+                client.send(struct.pack('!BBBBBBBBBBBBBB',
                                         rb, rf, lb, lf,
-                                        lb_button, rb_button,
-                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b))
+                                        rb_button, lb_button,
+                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b,a,y))
             except:
                 client.close()
                 print("connection refused")
