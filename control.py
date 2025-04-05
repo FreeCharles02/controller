@@ -1,6 +1,7 @@
 import serial
 import pygame
 import socket
+import time
 import struct
 import subprocess
 import re
@@ -207,12 +208,11 @@ def main():
 
             b = pollJoy(joystick, BButton)
             x = pollJoy(joystick, XButton)
-
-            a = pollJoy(joystick, AButton)
             y = pollJoy(joystick, YButton)
+            a = pollJoy(joystick, AButton)
 
-            rt_trigger = joystick.get_axis(5) + 1
-            lt_trigger = joystick.get_axis(2) + 1
+            rt_trigger = pollJoy(joystick, RightTrigger)
+            lt_trigger = pollJoy(joystick, LeftTrigger)
 
             rt_trigger = int(rt_trigger)
             lt_trigger = int(lt_trigger)
@@ -230,20 +230,26 @@ def main():
         rb, rf = remap(rf, rb)
         
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
-
+        
         if connect:
             try:
-                client.send(struct.pack('!BBBBBBBBBBBBBB',
+                client.send(struct.pack('!' + 'B'*14,
                                         rb, rf, lb, lf,
-                                        rb_button, lb_button,
-                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b,a,y))
-            except:
+                                        lb_button, rb_button,
+                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b, a, y))
+            except (ConnectionResetError, BrokenPipeError):
                 client.close()
                 print("connection refused")
-                client.connect((ip_address, 9999))
+                while(True):
+                    try:
+                        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        client.connect((ip_address, 9999))
+                        break
+                    except (ConnectionRefusedError, BrokenPipeError):
+                        time.sleep(0.1)
                 print("reconnected")
 
-        clock.tick(30)
+        clock.tick(20)
 
 
 if __name__ == "__main__":
