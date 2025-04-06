@@ -169,7 +169,7 @@ def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    ip_address = "192.168.0.101"
+    ip_address = "10.10.1.10"
 
     # Initalizes socket to
     if connect:
@@ -185,7 +185,7 @@ def main():
             if event.type == pygame.JOYDEVICEADDED:
                 joy = pygame.joystick.Joystick(event.device_index)
                 joysticks[joy.get_instance_id()] = joy
-                print(f"{joy.get_name()}, connencted")
+                print(f"{joy.get_name()}, connencted") 
             if event.type == pygame.JOYDEVICEREMOVED:
                 del joysticks[event.instance_id]
                 print(f"{joy.get_name()}, disconnected")
@@ -211,8 +211,8 @@ def main():
             y = pollJoy(joystick, YButton)
             a = pollJoy(joystick, AButton)
 
-            rt_trigger = pollJoy(joystick, RightTrigger)
-            lt_trigger = pollJoy(joystick, LeftTrigger)
+            rt_trigger = pollJoy(joystick, RightTrigger) + 1 
+            lt_trigger = pollJoy(joystick, LeftTrigger) + 1
 
             rt_trigger = int(rt_trigger)
             lt_trigger = int(lt_trigger)
@@ -235,7 +235,7 @@ def main():
             try:
                 client.send(struct.pack('!' + 'B'*14,
                                         rb, rf, lb, lf,
-                                        lb_button, rb_button,
+                                        rb_button, lb_button,
                                         dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b, a, y))
             except (ConnectionResetError, BrokenPipeError):
                 client.close()
@@ -249,7 +249,7 @@ def main():
                         time.sleep(0.1)
                 print("reconnected")
 
-        clock.tick(20)
+        clock.tick(30)
 
 
 if __name__ == "__main__":
