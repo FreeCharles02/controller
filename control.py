@@ -1,4 +1,4 @@
-import serial
+import platform
 import pygame
 import socket
 import time
@@ -8,19 +8,20 @@ import re
 
 
 def get_ip_from_mac(mac_address):
+    os = platform.system()
+    if os == "Windows":
+        mac_address = mac_address.replace(":", "-")
     try:
         arp_output = subprocess.check_output(['arp', '-a'], text=True)
         arp_lines = arp_output.splitlines()
-
         for line in arp_lines:
             if mac_address in line:
                 ip_address = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
                 if ip_address:
                     return ip_address.group(0)
-        return None
+                return None
     except subprocess.CalledProcessError:
-        return None
-
+         return None
 
 pygame.init()
 
@@ -169,7 +170,7 @@ def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    ip_address = "10.10.1.10"
+    ip_address = get_ip_from_mac("d8:3a:dd:d0:ac:cb")
 
     # Initalizes socket to
     if connect:
@@ -230,6 +231,7 @@ def main():
         rb, rf = remap(rf, rb)
         
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
+        print(ip_address)
         
         if connect:
             try:
