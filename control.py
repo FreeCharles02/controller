@@ -133,6 +133,16 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
    
     if turn > -deadzone and turn < deadzone:
         turn = 0
+    if speed > -deadzone and speed < deadzone:
+        speed = 0
+    if strafe > -deadzone and speed < deadzone:
+        strafe = 0
+        
+    print("Deadzone: ",f"{deadzone}")
+    print("Turn: ", f"{turn}")
+    print("Strafe: ", f"{strafe}")
+    print("Speed: ", f"{speed}")
+
 
     # Map joysticks onto mecanum wheels
     lFwd = speed - strafe + turn
@@ -196,7 +206,7 @@ def main():
                 del joysticks[event.instance_id]
                 print(f"{joy.get_name()}, disconnected")
 
-        lf, lb, rf, rb = 0, 0, 0, 0
+        lf, lb, rf, rb = 0.0, 0.0, 0.0, 0.0
         lb_button, rb_button = 0, 0
         rt_trigger, lt_trigger = 0, 0
         dpad_value_1 = 0
@@ -206,7 +216,7 @@ def main():
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
 
-            print(f"{lf}\t{rf}\n{lb}\n{rb}")
+          #  print(f"{lf}\t{rf}\n{lb}\n{rb}")
             MotorControlWatcher1.notify(lf,lb,rf,rb)
 
             lb_button = pollJoy(joystick, LeftBumper) 
