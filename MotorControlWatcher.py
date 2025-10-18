@@ -1,32 +1,14 @@
 class MotorControlWatcher: 
-    def _init_(self):
-        self.lf_value = None
-        self.lb_value = None
-        self.rf_value = None
-        self.rb_value = None
-
-        self.observers = []
-
-    def set_lf_value(self, new_value):
-        self.lf_value =  new_value
-        self.notify()
-
-    def set_lb_value(self, new_value):
-        self.lb_value = new_value
-        self.notify()
+    def __init__(self):
+        self.lf_value = 0.0
+        self.lb_value = 0.0
+        self.rf_value = 0.0
+        self.rb_value = 0.0
+        self.observer = False
     
-    def set_rf_value(self, new_value): 
-        self.rf_value = new_value
-        self.notify()
+    def notify(self, lf_new_value, lb_new_value, rf_new_value, rb_new_value):
+          if lf_new_value != self.lf_value or lb_new_value != self.lb_value or rf_new_value != self.rf_value or rb_new_value != self.rb_value:
+               self.observer = True
+          else:
+               self.observer = False
     
-    def set_rb_value(self, new_value):
-        self.rb_value = new_value
-        self.notify()   
-    
-    def add_observer(self, observer):
-        self.observers.append(observer)
-    
-    def notify(self):
-        for observer in self.observers: 
-            observer = True
-            observer = False
