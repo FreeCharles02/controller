@@ -5,7 +5,7 @@ import time
 import struct
 import subprocess
 import re
-import MotorControl
+from MotorControlWatcher import MotorControlWatcher
 
 
 def get_ip_from_mac(mac_address):
@@ -165,9 +165,13 @@ def remap(ch1, ch2):
     
 
 connect = True
+MotorControlChange = False
 
 
 def main():
+    MotorControlWatcher1 = MotorControlWatcher()
+    MotorControlWatcher.add_observer(MotorControlChange)
+
     clock = pygame.time.Clock()
     joysticks = {}
 
@@ -202,6 +206,11 @@ def main():
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
 
+            MotorControlWatcher1.set_lf_value(lf)
+            MotorControlWatcher1.set_lb_value(lb)
+            MotorControlWatcher1.set_rf_value(rf)
+            MotorControlWatcher1.set_rb_value(rb)
+
             lb_button = pollJoy(joystick, LeftBumper) 
             rb_button = pollJoy(joystick, RightBumper)
 
@@ -234,7 +243,7 @@ def main():
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
         print(ip_address)
         
-        if connect:
+        if connect and MotorControlChange == True:
             try:
                 client.send(struct.pack('!' + 'B'*14,
                                         rb, rf, lb, lf,
