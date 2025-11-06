@@ -147,7 +147,7 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
     # Map joysticks onto mecanum wheels
     lFwd = speed - strafe + turn
     lBwd = speed + strafe + turn
-    rFwd = speed + strafe - turn
+    rFwd = speed - strafe + turn
     rBwd = speed + strafe - turn
 
     # Calculate if any values exceed 1
