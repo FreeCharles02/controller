@@ -145,10 +145,11 @@ def calculateMecanumWheel(joystick, deadzone, maxspeed):
 
 
     # Map joysticks onto mecanum wheels
-    lFwd = speed - strafe + turn
-    lBwd = speed + strafe + turn
-    rFwd = speed - strafe + turn
+    lFwd = speed + strafe + turn
+    rFwd = speed - strafe - turn
+    lBwd = speed - strafe + turn
     rBwd = speed + strafe - turn
+
 
     # Calculate if any values exceed 1
     peak = max(abs(lFwd), abs(lBwd), abs(rFwd), abs(rBwd), 1)
@@ -237,16 +238,18 @@ def main():
             lt_trigger = int(lt_trigger)
 
         # Robot frame&motor power visualizer
+        
+
+        lb, lf = remap(lb, lf)
+        rb, rf = remap(rf* -1, rb * -1)
+
         print("\\===\\-----/===/\n" +
-              f"\\{lf*100:3.0f}\\     /{rf*100:3.0f}/\n" +
+              f"\\{lf}\\     /{rf}/\n" +
               "\\===\\     /===/\n" +
               ("   |       |\n" * 3) +
               "/===/     \\===\\\n" +
-              f"/{lb*100:3.0f}/     \\{rb*100:3.0f}\\\n" +
+              f"/{lb}/     \\{rb}\\\n" +
               "/===/-----\\===\\\n")
-
-        lb, lf = remap(lb*-1, lf*-1)
-        rb, rf = remap(rf, rb)
         
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
         print(ip_address)
