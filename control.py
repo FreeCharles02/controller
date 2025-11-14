@@ -114,7 +114,7 @@ def pollJoy(joystick, input_source):
 
     if source[0] == Axis:
         if (source[2] < 0):
-            return joystick.get_axis(source[1]) * -1
+            return joystick.get_axis(source[1])
         return joystick.get_axis(source[1])
 
     if source[0] == Hat:
@@ -240,8 +240,8 @@ def main():
         # Robot frame&motor power visualizer
         
 
-        lb, lf = remap(lb, lf)
-        rb, rf = remap(rf* -1, rb * -1)
+        lb, lf = remap(lb * -1, lf *-1)
+        rb, rf = remap(rf * -1, rb * -1)
 
         print("\\===\\-----/===/\n" +
               f"\\{lf}\\     /{rf}/\n" +
@@ -257,7 +257,7 @@ def main():
         print("Motor Control boolean: ", MotorControlWatcher1.observer)
     
         #print(MotorControlWatcher1.lb_value)
-        if connect and MotorControlWatcher1.observer:
+        if connect:
             try:
                 client.send(struct.pack('!' + 'B'*4,
                                         rb, rf, lb, lf,))
