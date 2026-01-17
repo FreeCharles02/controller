@@ -5,17 +5,20 @@ import time
 import struct
 import subprocess
 import re
+from MotorControlWatcher import MotorControlWatcher
 
-
+# Helper to find an IP address in the local ARP table by MAC address.
 def get_ip_from_mac(mac_address):
     os = platform.system()
     if os == "Windows":
-        mac_address = mac_address.replace(":", "-")
+        mac_address = mac_address.replace(":", "-")  # Windows arp output uses dashes
     try:
+        # run `arp -a` and search lines for the MAC address
         arp_output = subprocess.check_output(['arp', '-a'], text=True)
         arp_lines = arp_output.splitlines()
         for line in arp_lines:
             if mac_address in line:
+                # extract the first IPv4-looking substring
                 ip_address = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
                 if ip_address:
                     return ip_address.group(0)
@@ -23,13 +26,14 @@ def get_ip_from_mac(mac_address):
     except subprocess.CalledProcessError:
          return None
 
-pygame.init()
+pygame.init()  # initialize pygame modules (needed for joystick events)
 
-# Standardized Names
+# Standardized input type names used in mapping table
 Button = "Button"
 Axis = "Axis"
 Hat = "Hat"
 
+# Logical names for buttons/axes used by the rest of the program
 LeftBumper = "LB"
 RightBumper = "RB"
 LeftTrigger = "LT"
@@ -51,6 +55,8 @@ RightJoyIn = "RJ_IN"
 DpadLeftRight = "D_LR"
 DpadUpDown = "D_UD"
 
+# Controller mappings: maps controller name to how its inputs map to our logical names.
+# Each mapping entry is a tuple: (type, index, optional_sign_or_hat_index)
 ControllerMappings = {
     "Pro Controller": {
         AButton: (Button, 1), BButton: (Button, 0),
@@ -103,86 +109,113 @@ ControllerMappings = {
 }
 
 
+# Read a logical input (input_source) from a pygame joystick using the mapping table.
 def pollJoy(joystick, input_source):
     name = joystick.get_name()
-    controllerMap = ControllerMappings.get(name, False)
-    source = controllerMap.get(input_source, False)
+    controllerMap = ControllerMappings.get(name, False)  # get mapping for this controller
+    source = controllerMap.get(input_source, False)  # get how this logical input is implemented
 
     if source[0] == Button:
+        # read a digital button
         return joystick.get_button(source[1])
 
     if source[0] == Axis:
+        # read an analog axis (sign handling already baked into mapping tuples)
         if (source[2] < 0):
-            return joystick.get_axis(source[1]) * -1
+            return joystick.get_axis(source[1])
         return joystick.get_axis(source[1])
 
     if source[0] == Hat:
+        # read a hat (D-pad) value, return specified axis of the hat tuple
         return joystick.get_hat(source[1])[source[2]]
 
+    # If mapping is invalid, print and exit
     print(f"Unable to find source \"{source}\".")
     exit(1)
 
 
+# Convert joystick axes into four mecanum wheel values.
+# deadzone: small joystick noise threshold
+# maxspeed: scale factor for motor outputs
 def calculateMecanumWheel(joystick, deadzone, maxspeed):
-    speed = pollJoy(joystick, LeftJoyUpDown)
-    strafe = pollJoy(joystick, LeftJoyLeftRight)
-    turn = pollJoy(joystick, RightJoyLeftRight)
+    speed = pollJoy(joystick, LeftJoyUpDown)       # forward/back
+    strafe = pollJoy(joystick, LeftJoyLeftRight)   # left/right
+    turn = pollJoy(joystick, RightJoyLeftRight)    # rotation
 
-    deadzone = abs(deadzone) 
+    deadzone = abs(deadzone)  # ensure positive
 
+    # apply deadzone to ignore small joystick noise
     if turn > -deadzone and turn < deadzone:
         turn = 0
+    if speed > -deadzone and speed < deadzone:
+        speed = 0
+    if strafe > -deadzone and speed < deadzone:
+        strafe = 0
 
-    # Map joysticks onto mecanum wheels
-    lFwd = speed - strafe + turn
-    lBwd = speed + strafe + turn
-    rFwd = speed + strafe - turn
+    # debug prints for joystick raw values
+    print("Deadzone: ", f"{deadzone}")
+    print("Turn: ", f"{turn}")
+    print("Strafe: ", f"{strafe}")
+    print("Speed: ", f"{speed}")
+
+    # Map joysticks onto mecanum wheel contributions
+    lFwd = speed + strafe + turn
+    rFwd = speed - strafe - turn
+    lBwd = speed - strafe + turn
     rBwd = speed + strafe - turn
 
-    # Calculate if any values exceed 1
+    # Normalize so none exceed magnitude 1
     peak = max(abs(lFwd), abs(lBwd), abs(rFwd), abs(rBwd), 1)
-
-    # divide by that value so no value exceeds 1
     lFwd /= peak
     lBwd /= peak
     rFwd /= peak
     rBwd /= peak
 
+    # Scale to desired max speed
     lFwd *= maxspeed
     lBwd *= maxspeed
     rFwd *= maxspeed
     rBwd *= maxspeed
 
+    # return wheel powers: left front, left back, right front, right back
     return (lFwd, lBwd, rFwd, rBwd)
 
 
+# Simple remapping function converting two channels into bytes for sending.
 def remap(ch1, ch2):
     if (ch2 > 0):
         return (int(ch1*63+64), int(ch2*63+192))
     else:
-        return (int(ch1*63+64), int(ch2*64+192))
+        return (int(ch1*63+64), int(ch2*63+192))
     
 
-connect = True
+connect = True  # whether to connect to the remote robot server
+MotorControlChange = False  # unused flag in this file
 
 
 def main():
+    # Create a MotorControlWatcher to observe motor value changes
+    MotorControlWatcher1 = MotorControlWatcher()
+ #   MotorControlWatcher1.add_observer(MotorControlChange)  # commented out in original
+
     clock = pygame.time.Clock()
-    joysticks = {}
+    joysticks = {}  # active joysticks tracked by instance id
 
-    ip_address = get_ip_from_mac("d8:3a:dd:d0:ac:cb")
+    # Choose IP address to connect to (placeholder or use ARP lookup)
+    ip_address =  '127.0.0.1' # get_ip_from_mac("d8:3a:dd:d0:ac:cb")
 
-    # Initalizes socket to
+    # Initialize TCP connection to robot (if enabled)
     if connect:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect((ip_address, 9999))
 
+    # Main loop: process events, read joystick inputs, compute motors, and send updates.
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
 
-            # Handle hotplugging
+            # Handle joystick hotplug events
             if event.type == pygame.JOYDEVICEADDED:
                 joy = pygame.joystick.Joystick(event.device_index)
                 joysticks[joy.get_instance_id()] = joy
@@ -191,16 +224,22 @@ def main():
                 del joysticks[event.instance_id]
                 print(f"{joy.get_name()}, disconnected")
 
-        lf, lb, rf, rb = 0, 0, 0, 0
+        # default values for this update
+        lf, lb, rf, rb = 0.0, 0.0, 0.0, 0.0
         lb_button, rb_button = 0, 0
         rt_trigger, lt_trigger = 0, 0
         dpad_value_1 = 0
         dpad_value_2 = 0
         a, b, x, y = 0, 0, 0, 0
 
+        # Read inputs from all connected joysticks (currently uses last joystick read)
         for joystick in joysticks.values():
             lf, lb, rf, rb = calculateMecanumWheel(joystick, 0.08, 0.8)
 
+            # notify watcher about motor values (observer pattern)
+            MotorControlWatcher1.notify(lf,lb,rf,rb)
+
+            # read button/hat/trigger values
             lb_button = pollJoy(joystick, LeftBumper) 
             rb_button = pollJoy(joystick, RightBumper)
 
@@ -218,28 +257,33 @@ def main():
             rt_trigger = int(rt_trigger)
             lt_trigger = int(lt_trigger)
 
-        # Robot frame&motor power visualizer
+        # Convert wheel float values into bytes for visualizer / sending
+        lb, lf = remap(lb * -1, lf *-1)
+        rb, rf = remap(rf * -1, rb * -1)
+
+        # Print a simple ASCII robot frame and values for debugging
         print("\\===\\-----/===/\n" +
-              f"\\{lf*100:3.0f}\\     /{rf*100:3.0f}/\n" +
+              f"\\{lf}\\     /{rf}/\n" +
               "\\===\\     /===/\n" +
               ("   |       |\n" * 3) +
               "/===/     \\===\\\n" +
-              f"/{lb*100:3.0f}/     \\{rb*100:3.0f}\\\n" +
+              f"/{lb}/     \\{rb}\\\n" +
               "/===/-----\\===\\\n")
-
-        lb, lf = remap(lb*-1, lf*-1)
-        rb, rf = remap(rf, rb)
         
+        # Print numeric values; formatting may assume integers
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
         print(ip_address)
         
+        # show watcher state for debugging
+        print("Motor Control boolean: ", MotorControlWatcher1.observer)
+    
+        # Send 4 bytes (rb, rf, lb, lf) to the connected robot server
         if connect:
             try:
-                client.send(struct.pack('!' + 'B'*14,
-                                        rb, rf, lb, lf,
-                                        rb_button, lb_button,
-                                        dpad_value_1, dpad_value_2, rt_trigger,lt_trigger, x, b, a, y))
+                client.send(struct.pack('!' + 'B'*4,
+                                        rb, rf, lb, lf,))
             except (ConnectionResetError, BrokenPipeError):
+                # attempt to reconnect if connection breaks
                 client.close()
                 print("connection refused")
                 while(True):
@@ -251,7 +295,7 @@ def main():
                         time.sleep(0.1)
                 print("reconnected")
 
-        clock.tick(30)
+        clock.tick(30)  # limit loop to ~30 FPS
 
 
 if __name__ == "__main__":
