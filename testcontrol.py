@@ -1,7 +1,7 @@
 import struct
 import socket
 import time
-from serial import Serial 
+#from serial import Serial 
 #host = get_non_loopback_ip()
 host = '127.0.0.1'
 port = 9999
