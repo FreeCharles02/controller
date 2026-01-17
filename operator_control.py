@@ -26,7 +26,6 @@ def get_ip_from_mac(mac_address):
     except subprocess.CalledProcessError:
          return None
 
-pygame.init()  # initialize pygame modules (needed for joystick events)
 
 # Standardized input type names used in mapping table
 Button = "Button"
@@ -188,12 +187,14 @@ def remap(ch1, ch2):
     else:
         return (int(ch1*63+64), int(ch2*63+192))
     
-
+    
 connect = True  # whether to connect to the remote robot server
 MotorControlChange = False  # unused flag in this file
 
 
 def main():
+    pygame.init()  # initialize pygame modules (needed for joystick events)
+
     # Create a MotorControlWatcher to observe motor value changes
     MotorControlWatcher1 = MotorControlWatcher()
  #   MotorControlWatcher1.add_observer(MotorControlChange)  # commented out in original
