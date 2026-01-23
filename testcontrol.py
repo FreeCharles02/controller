@@ -11,11 +11,12 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("", port))
 server.listen(1)
 '''serial_port = "/dev/serial0" #serial1'
-serial_port2 = "/dev/ttyAMA1"
+serial_port2 = "/dev/ttyAMA2"
+serial_port3 = "/dev/ttyAMA3"
 baudrate = 115200
 
 roboclaw2 = Serial(serial_port2, baudrate, timeout=1)
-
+roboclaw3 = Serial(serial_port3, baudrate, timeout=1)
 roboclaw = Serial(serial_port, baudrate, timeout=1)'''
 
 
