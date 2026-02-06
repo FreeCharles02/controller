@@ -113,7 +113,7 @@ def pollJoy(joystick, input_source):
 
     if source[0] == Axis:
         if (source[2] < 0):
-            return joystick.get_axis(source[1]) * -1
+            return joystick.get_axis(source[1])
         return joystick.get_axis(source[1])
 
     if source[0] == Hat:
@@ -124,19 +124,23 @@ def pollJoy(joystick, input_source):
 
 
 def calculateMecanumWheel(joystick, deadzone, maxspeed):
-    speed = pollJoy(joystick, LeftJoyUpDown)
+    speed = pollJoy(joystick, LeftJoyUpDown) * -1 
     strafe = pollJoy(joystick, LeftJoyLeftRight)
     turn = pollJoy(joystick, RightJoyLeftRight)
 
     deadzone = abs(deadzone) 
 
-    if turn > -deadzone and turn < deadzone:
+    if turn >= -deadzone and turn <= deadzone:
         turn = 0
+    if speed >= -deadzone and speed <= deadzone:
+        speed = 0
+    if strafe >= -deadzone and strafe <= deadzone:
+        strafe = 0
 
     # Map joysticks onto mecanum wheels
-    lFwd = speed - strafe + turn
-    lBwd = speed + strafe + turn
-    rFwd = speed + strafe - turn
+    lFwd = speed + strafe + turn
+    lBwd = speed - strafe - turn
+    rFwd = speed - strafe + turn
     rBwd = speed + strafe - turn
 
     # Calculate if any values exceed 1
@@ -170,7 +174,7 @@ def main():
     clock = pygame.time.Clock()
     joysticks = {}
 
-    ip_address = get_ip_from_mac("d8:3a:dd:d0:ac:cb")
+    ip_address = "127.0.0.1"
 
     # Initalizes socket to
     if connect:
@@ -227,7 +231,7 @@ def main():
               f"/{lb*100:3.0f}/     \\{rb*100:3.0f}\\\n" +
               "/===/-----\\===\\\n")
 
-        lb, lf = remap(lb*-1, lf*-1)
+        lb, lf = remap(lb, lf)
         rb, rf = remap(rf, rb)
         
         print(f"{lf:3d}\t{rf:3d}\n{lb:3d}\t{rb:3d}\t{dpad_value_1: 3d}\t{dpad_value_2: 3d}\t{a: 3d}\t{y: 3d}\t{rt_trigger: 3d}\t{lt_trigger: 3d}\t{lb_button: 3d}\t {rb_button: 3d}\t {a: 3d}\t{y: 3d} \n\n")
